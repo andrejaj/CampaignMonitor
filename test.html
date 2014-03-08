@@ -1,0 +1,120 @@
+﻿<html>
+    <head>
+        <title>CampaignMonitor</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+        <script src="js/handlebars-v1.1.2.js" type="text/javascript"></script>
+        <script src="js/jquery.timeago.js" type="text/javascript"></script>
+        <script type="text/javascript">
+
+            $.fn.center = function () {
+                this.css({
+                    'position': 'fixed',
+                    'left': '50%',
+                    'top': '50%'
+                });
+                this.css({
+                    'margin-left': -this.outerWidth() / 2 + 'px',
+                    'margin-top': -this.outerHeight() / 2 + 'px'
+                });
+
+                return this;
+            }
+
+            function loadIssues() {
+               
+                $("#results").hide();
+                $("#spinner").fadeIn("fast");
+               
+                console.log("calling loadIssues");
+              
+                $.ajax({
+                    //url: "http://status.campaignmonitor.com/api/issues/current", //live url
+                    url: "test.jsonp",
+                    dataType: "jsonp",
+                    jsonpCallback: "cb",
+                    success: function (data) {
+                                               
+                        var source = $("#template").html();
+
+                        var template = Handlebars.compile(source);
+
+                        console.log(data);
+                        //wrapp json data to be injected into template
+                        var jsonWrapper = { "issues": data };
+
+                        console.log(jsonWrapper);
+                          
+                        $("#spinner").fadeOut(2000);
+                        $("#results").html(template(jsonWrapper)).fadeIn(3000);
+                    },
+                    error: function (request, status, error) {
+                        alert(request.responseText);
+                        console.log(request.status);
+                        console.log(error);
+                    }
+                });
+            }
+
+            $(document).ready(function () {
+                $("#spinner").center();
+                loadIssues();
+            });
+                               
+            Handlebars.registerHelper('Resolved', function (conditional, options) {
+                if (conditional) {
+                    return options.fn(this);
+                } else {
+                    return options.inverse(this);
+                }
+            });
+
+            Handlebars.registerHelper('TimeAgo', function (time, options) {
+                return jQuery.timeago(time);
+            });
+
+          </script>
+
+        <script type="text/x-handlebars-template" id="template">
+            {{#each issues}}
+             {{! Each issue should be rendered with the following template }}
+            <div class="issue-template">
+                {{#Resolved status }}
+                <h3>{{title}} - Resolved {{TimeAgo resolvedAt}}</h3>  {{! If status === Resolved }}            
+            {{else}}
+                <h3>{{title}} - Begin {{TimeAgo beganAt}}</h3> {{!If status === Unresolved }}                
+            {{/Resolved}}
+            
+             <p>{{description}}</p>
+                <div style="padding-left: 50px">
+                    <p>Updates:</p>
+                    {{#updates}}
+            {{! Each update should be rendered with the following template }}
+            <div class="update-template">
+                <p>{{update}}</p>
+                <em>By {{by}} {{TimeAgo at}}</em>
+                <hr style="width: 50%" />
+            </div>
+                    {{/updates}}
+                </div>
+                <hr />
+            </div>
+            {{else}}
+            <div class="no-issues-template">
+                {{! Render this if there are no issues returned }}
+                Everybodies happy!
+            </div>
+            {{/each}}
+        </script>
+
+    </head>
+    <body>
+        <div id="spinner" style="display:none;"><img src="img/ajax-loader.gif" /></div>
+        <div class="container" style="padding-top:30px">
+            <div>
+                <p><a href="javascript:loadIssues()">Load the current issues list</a></p>
+            </div>
+            <div id="results" style="display:none;"/>            
+        </div>
+    </body> 
+</html>
